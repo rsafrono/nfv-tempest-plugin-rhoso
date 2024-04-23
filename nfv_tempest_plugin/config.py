@@ -230,5 +230,8 @@ NfvPluginOptions = [
                          'nova': '/var/lib/openstack/config/nova/01-nova.conf',
                          'sriov-nova': '/var/lib/openstack/config/nova/'
                          '03-sriov-nova.conf'},
-                help='Configuration files')
+                help='Configuration files'),
+    cfg.BoolOpt('run_live_migration',
+                default=True,
+                help="Setup is able to run live migration")
 ]

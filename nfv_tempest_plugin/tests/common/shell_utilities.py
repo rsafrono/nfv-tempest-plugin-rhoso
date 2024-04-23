@@ -145,26 +145,6 @@ def retrieve_content_from_files(node, files):
     return file_content
 
 
-def retrieve_content_from_hiera(node, keys,
-                                hiera_file='/etc/puppet/hiera.yaml'):
-    """Get configuration values using hiera tool
-
-    :param node: The node to retrieve the value from
-    :param keys: The keys that should be provided to retrieve the value
-                 Multiple keys should be provided as the array
-    :param hiera_file: Hiera config file
-    :return: List of the values returned
-    """
-    hiera_template = 'sudo hiera -c {hiera_file} {key};'
-    hiera_command = ''
-    for key in keys:
-        hiera_command += hiera_template.format(hiera_file=hiera_file,
-                                               key=key)
-    hiera_content = run_command_over_ssh(node, hiera_command)
-    hiera_content = hiera_content.replace(',\n', ',').strip().split('\n')
-    return hiera_content
-
-
 def parse_int_ranges_from_number_string(input_string):
     """Parses integers from number string
 

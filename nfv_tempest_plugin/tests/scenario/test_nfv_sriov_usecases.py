@@ -339,7 +339,7 @@ class TestSriovScenarios(base_test.BaseTest, QoSManagerMixin):
         kw_args['command'] = "sudo ip link show"
         kw_args['file_path'] = CONF.nfv_plugin_options.conf_files['sriov-nova']
         kw_args['search_param'] = \
-            {'section': 'pci', 'value': 'passthrough_whitelist'}
+            {'section': 'pci', 'value': 'device_spec'}
         """ Regexp search VF interfaces with neutron MAC prefix,
         [Cr] is for catching the following options: MAC|link/ether for
         different OS versions """
@@ -451,7 +451,7 @@ class TestSriovScenarios(base_test.BaseTest, QoSManagerMixin):
         kw_args['file_path'] = \
             '/var/lib/config-data/nova_libvirt/etc/nova/nova.conf'
         kw_args['search_param'] = \
-            {'section': 'pci', 'value': 'passthrough_whitelist'}
+            {'section': 'pci', 'value': 'device_spec'}
         """ Regexp search Mellanox connect-x """
         kw_args['filter_regexp'] = \
             r'.*\[ConnectX\-5 Ex\]|.*\[ConnectX\-5\]'

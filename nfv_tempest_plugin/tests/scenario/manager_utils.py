@@ -14,6 +14,7 @@
 #    under the License.
 
 import base64
+import configparser
 import json
 import os.path
 import paramiko
@@ -917,69 +918,44 @@ class ManagerMixin(object):
         """
         if node is None:
             node = self._get_hypervisor_ip_from_undercloud()[0]
-        network_backend = self.discover_deployment_network_backend(node=node)
-        if not keys:
-            if network_backend == 'ovs':
-                hiera_bridge_mapping = \
-                    "neutron::agents::ml2::ovs::bridge_mappings"
-            elif network_backend == 'ovn':
-                hiera_bridge_mapping = "ovn::controller::ovn_bridge_mappings"
-            else:
-                hiera_bridge_mapping = None
-            hiera_numa_mapping = "nova::compute::neutron_physnets_numa_" \
-                                 "nodes_mapping"
-            hiera_numa_tun = "nova::compute::neutron_tunnel_numa_nodes"
-            hiera_pci_whitelist = "nova::compute::pci::passthrough"
-            keys = [hiera_bridge_mapping, hiera_numa_mapping, hiera_numa_tun,
-                    hiera_pci_whitelist]
-        numa_phys_content = shell_utils.retrieve_content_from_hiera(node=node,
-                                                                    keys=keys)
-        # Identify the numa aware physnet
-        numa_aware_phys = {}
-        bridge_mapping = []
-        numa_aware_tun = []
-        pci_whitelist = []
-        for physnet in numa_phys_content:
-            if 'physical_network' in physnet:
-                pci_whitelist = yaml.safe_load(physnet.replace('=>', ':'))
-            elif '=>' in physnet:
-                numa_aware_phys = yaml.safe_load(physnet.replace('=>', ':'))
-            elif ':' in physnet:
-                bridge_mapping = yaml.safe_load(physnet)
-            else:
-                numa_aware_tun = yaml.safe_load(physnet)
 
         numa_physnets = {'numa_aware_net': {},
                          'non_numa_aware_net': [],
                          'numa_aware_tunnel': {}}
-        physnet_list = []
-        """" Check type is list"""
-        if not isinstance(bridge_mapping, list):
-            bridge_mapping = bridge_mapping.split(',')
-        for item in bridge_mapping:
-            physnet = item.split(':')[0]
-            physnet_list.append(physnet)
 
-        for physnet in physnet_list:
-            if physnet in numa_aware_phys.keys():
-                LOG.info('The {} is a numa aware network'.format(physnet))
+        # get networks defined in bridge mappings
+        external_ids = shell_utils.run_command_over_ssh(
+            node, "sudo ovs-vsctl get Open_vSwitch . external_ids")
+        ovn_bridge_mappings = re.search(
+            r"ovn-bridge-mappings=\"([^\"]*)\"", external_ids)
+        networks = [item.split(':')[0]
+                    for item in ovn_bridge_mappings.group(1).split(",")]
+
+        # get numa aware networks
+        config = configparser.ConfigParser()
+        cpu_pinning_file = shell_utils.run_command_over_ssh(
+            node, "cat {}".format(
+                CONF.nfv_plugin_options.conf_files['cpu_pinning_nova']))
+        config.read_string(cpu_pinning_file)
+        physnets = config.get('neutron', 'physnets').split(",")
+        for physnet in physnets:
+            try:
+                numa_node = config.get('neutron_physnet_' + physnet,
+                                       'numa_nodes')
                 numa_physnets['numa_aware_net'] = \
-                    {'net': physnet, 'numa_node': numa_aware_phys[physnet][0]}
-            else:
-                LOG.info('The {} is a non numa aware network'.format(physnet))
+                    {'net': physnet, 'numa_node': numa_node}
+            except configparser.NoOptionError:
                 numa_physnets['non_numa_aware_net'].append(physnet)
+            networks.remove(physnet)
+        try:
+            numa_node = config.get('neutron_tunnel', 'numa_nodes')
+            numa_physnets['numa_aware_tunnel'] = {'numa_node': numa_node}
+        except configparser.NoSectionError:
+            pass
 
-        # Exclude sriov networks from non numa aware list
-        sriov_nets = [sriov_net['physical_network']
-                      for sriov_net in pci_whitelist]
-        sriov_nets = list(set(sriov_nets))
-        numa_physnets['non_numa_aware_net'] = \
-            [non_numa for non_numa in numa_physnets['non_numa_aware_net']
-             if non_numa not in sriov_nets]
+        for net in networks:
+            numa_physnets['non_numa_aware_net'].append(net)
 
-        if numa_aware_tun:
-            numa_physnets['numa_aware_tunnel'] = \
-                {'numa_node': numa_aware_tun[0]}
         return numa_physnets
 
     def list_available_resources_on_hypervisor(self, hypervisor_name, nps=1):

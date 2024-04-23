@@ -132,7 +132,7 @@ class TestNfvBasic(base_test.BaseTest):
         if CONF.nfv_plugin_options.target_hypervisor:
             self.hypervisor_ip = \
                 self._get_hypervisor_ip_from_undercloud(
-                    hyper_name=CONF.nfv_plugin_options.target_hypervisor)
+                    hyper_name=CONF.nfv_plugin_options.target_hypervisor)[0]
         else:
             self.hypervisor_ip = self._get_hypervisor_ip_from_undercloud()[0]
         self.assertNotEmpty(self.hypervisor_ip, "No hypervisor found")
@@ -151,19 +151,17 @@ class TestNfvBasic(base_test.BaseTest):
         client.connect()
 
         # create a VM to make sure it works properly with workload
-        hypervisors = \
-            self.os_admin.hypervisor_client.list_hypervisors()['hypervisors']
-        # take first element of hypervisor list by default
-        target_hypervisor = hypervisors[0]
         if CONF.nfv_plugin_options.target_hypervisor:
-            # if target_hypervisor provided look for it in hypervisor list
-            target_hypervisor = [
-                h for h in hypervisors if h['hypervisor_hostname']
-                == CONF.nfv_plugin_options.target_hypervisor][0]
+            target_hypervisor = CONF.nfv_plugin_options.target_hypervisor
+        else:
+            hypervisors = \
+                self.os_admin.hypervisor_client.list_hypervisors()[
+                    'hypervisors']
+            target_hypervisor = hypervisors[0]['hypervisor_hostname']
 
         kwargs = {
             'availability_zone': {
-                'hyper_hosts': [target_hypervisor['hypervisor_hostname']]
+                'hyper_hosts': [target_hypervisor]
             }
         }
         self.create_and_verify_resources(test=test, **kwargs)

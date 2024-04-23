@@ -17,6 +17,7 @@ from nfv_tempest_plugin.tests.scenario import base_test
 from oslo_log import log as logging
 from tempest.common import waiters
 from tempest import config
+from time import sleep
 
 CONF = config.CONF
 LOG = logging.getLogger('{} [-] nfv_plugin_test'.format(__name__))
@@ -147,7 +148,8 @@ class TestAdvancedScenarios(base_test.BaseTest):
                              "hypervisor. Use availability zone to reach "
                              "that state.")
 
-        if not CONF.nfv_plugin_options.target_hypervisor:
+        if (not CONF.nfv_plugin_options.target_hypervisor
+                and CONF.nfv_plugin_options.run_live_migration):
             migrate_kw_args = {'block_migration': True, 'force': True}
             # on 16.X microversion is 2.72
             if float(CONF.compute.min_microversion) > 2.67:
@@ -219,6 +221,10 @@ class TestAdvancedScenarios(base_test.BaseTest):
                                          user=self.instance_user,
                                          key_pair=key_pair['private_key'])
         LOG.info('Verify the migration succeeded')
+
+        # To avoid race conditions,
+        # some times new cpu are given to the instance
+        sleep(10)
         second_hyper = self._get_hypervisor_ip_from_undercloud(
             **{'server_id': srv1[0]['id']})[0]
         self.assertNotEqual(srv1[0]['hypervisor_ip'], second_hyper,
@@ -244,7 +250,7 @@ class TestAdvancedScenarios(base_test.BaseTest):
             **{'server_id': srv2[0]['id']})[0]
         LOG.info('Boot second instance {} on the {} hypervisor'
                  .format(srv2[0]['id'], srv2[0]['hypervisor_ip']))
-        srv2_vcpus = self.get_instance_vcpu(srv2[0], srv1[0]['hypervisor_ip'])
+        srv2_vcpus = self.get_instance_vcpu(srv2[0], srv2[0]['hypervisor_ip'])
         LOG.info('The cores of {} instance on the {} hypervisor are {}'.format(
             srv2[0]['id'], srv2[0]['hypervisor_ip'], srv2_vcpus))
 
