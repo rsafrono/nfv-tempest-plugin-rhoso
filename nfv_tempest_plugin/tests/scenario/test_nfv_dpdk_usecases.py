@@ -187,7 +187,7 @@ class TestDpdkScenarios(base_test.BaseTest, QoSManagerMixin):
 
         check_section = 'libvirt'
         check_value = 'rx_queue_size,tx_queue_size'
-        config_path = "/var/lib/openstack/config/nova/01-nova.conf"
+        config_path = CONF.nfv_plugin_options.conf_files['nova']
 
         for srv in servers:
             LOG.info('Test RX/TX for the {} instance'.format(srv['fip']))

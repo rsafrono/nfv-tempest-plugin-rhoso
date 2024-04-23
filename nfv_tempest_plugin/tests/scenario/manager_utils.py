@@ -381,8 +381,7 @@ class ManagerMixin(object):
             node = self._get_hypervisor_ip_from_undercloud()[0]
         dedicated_cpus = "cpu_dedicated_set"
         shared_cpus = "cpu_shared_set"
-        config_path = "/var/lib/openstack/config/nova" \
-                      "/04-cpu-pinning-nova.conf"
+        config_path = CONF.nfv_plugin_options.conf_files['cpu_pinning_nova']
         section = "compute"
 
         dedicated = shell_utils.\

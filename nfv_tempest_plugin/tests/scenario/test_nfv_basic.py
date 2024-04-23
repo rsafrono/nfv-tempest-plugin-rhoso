@@ -338,8 +338,7 @@ class TestNfvBasic(base_test.BaseTest):
         servers, key_pair = self.create_and_verify_resources(test=test,
                                                              **kwargs)
 
-        config_path = '/var/lib/openstack/config/nova' \
-                      '/04-cpu-pinning-nova.conf'
+        config_path = CONF.nfv_plugin_options.conf_files['cpu_pinning_nova']
         check_section = 'compute'
         check_value = 'cpu_shared_set'
 

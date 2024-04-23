@@ -337,8 +337,7 @@ class TestSriovScenarios(base_test.BaseTest, QoSManagerMixin):
         # Set test parameters
         kw_args = {}
         kw_args['command'] = "sudo ip link show"
-        kw_args['file_path'] = ("/var/lib/openstack/config/nova"
-                                "/03-sriov-nova.conf")
+        kw_args['file_path'] = CONF.nfv_plugin_options.conf_files['sriov-nova']
         kw_args['search_param'] = \
             {'section': 'pci', 'value': 'passthrough_whitelist'}
         """ Regexp search VF interfaces with neutron MAC prefix,
