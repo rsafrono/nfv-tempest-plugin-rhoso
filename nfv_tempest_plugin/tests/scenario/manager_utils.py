@@ -1161,12 +1161,8 @@ class ManagerMixin(object):
         ovs_dpdk_bonds = {}
         if node is None:
             node = self._get_hypervisor_ip_from_undercloud()[0]
-        if self.get_osp_release() >= 17:
-            os_net_config_cmd = 'cat /etc/os-net-config/config.yaml'
-            load_f = yaml.safe_load
-        else:
-            os_net_config_cmd = 'cat /etc/os-net-config/config.json'
-            load_f = json.loads
+        os_net_config_cmd = 'cat /etc/os-net-config/config.yaml'
+        load_f = yaml.safe_load
         content = shell_utils.run_command_over_ssh(node, os_net_config_cmd)
         os_net_data = load_f(content)
         for net_int in os_net_data['network_config']:
