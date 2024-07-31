@@ -152,6 +152,11 @@ def parse_int_ranges_from_number_string(input_string):
     """
     # Assign helper variable
     parsed_input = []
+    # Trim '"' if any
+    if '"' in input_string:
+        input_string = input_string.strip('"')
+    if "'" in input_string:
+        input_string = input_string.strip("'")
     # Construct a list of integers from given number string,range
     for cell in input_string.split(','):
         if '-' in cell:
