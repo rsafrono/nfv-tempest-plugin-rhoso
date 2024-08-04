@@ -994,35 +994,6 @@ class ManagerMixin(object):
                 'vcpu_free_per_numa': vcpu_free_per_numa,
                 'ram_free': ram_free}
 
-    def discover_deployment_network_backend(self, node=None):
-        """Locate deployment's network backend
-
-        The method discovers the network backend used in deployment.
-        It depends on hieradata being present on the node.
-
-        :param node: The node that the query should executed on.
-        :return The deployment network backend.
-        """
-        # Initialize parameters
-        network_backend = 'unknown'
-        hieradata_keys = [
-            'enabled_services'
-        ]
-        if node is None:
-            node = self._get_hypervisor_ip_from_undercloud()[0]
-        hiera_response = \
-            shell_utils.retrieve_content_from_hiera(node=node,
-                                                    keys=hieradata_keys)
-        # Construct a list of enabled services from response string
-        enabled_services = \
-            re.sub(r'\[|\]|"| ', '', hiera_response[0]).split(',')
-        if 'neutron_plugin_ml2' in enabled_services:
-            network_backend = 'ovs'
-        elif 'neutron_plugin_ml2_ovn' in enabled_services:
-            network_backend = 'ovn'
-        LOG.info("Discovered network backend '{}'".format(network_backend))
-        return network_backend
-
     def discover_mtu_network_size(self, fip=None, fixed_port=None):
         """Discover mtu network size
 
