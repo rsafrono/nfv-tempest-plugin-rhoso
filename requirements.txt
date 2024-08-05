@@ -10,3 +10,4 @@ jsonschema===4.16.0 # MIT
 cryptography===38.0.2
 tempest>=27.0.0 # Apache-2.0
 neutron_tempest_plugin>=0.9.0 # Apache-2.0
+openshift
