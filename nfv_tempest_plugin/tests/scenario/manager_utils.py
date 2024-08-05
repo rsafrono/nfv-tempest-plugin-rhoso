@@ -1192,12 +1192,11 @@ class ManagerMixin(object):
         :param interface: interface to get queues
         :return dictionary with parameters
         """
-        cmd = 'sudo ovs-vsctl  list Interface {} | ' \
-              'grep -o -P "n_rxq.{{0,4}}" | awk -F \'"\' \'{{print $2}}\''
+        cmd = f"sudo ovs-vsctl  list Interface {interface} | grep -oE -m 1 'n_rxq.\"[0-9]\"' | awk -F '\"' '{{print $2}}'"
 
         # parse cmd command
         output = shell_utils.run_command_over_ssh(hypervisor_ip,
-                                                  cmd.format(interface))
+                                                  cmd)
         queues = -1
         try:
             queues = int(output)
