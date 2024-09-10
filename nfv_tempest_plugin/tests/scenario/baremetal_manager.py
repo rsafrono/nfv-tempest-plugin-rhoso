@@ -143,7 +143,7 @@ class BareMetalManager(api_version_utils.BaseMicroversionTest,
         if CONF.nfv_plugin_options.quota_cores and \
                 CONF.nfv_plugin_options.quota_ram:
             self.os_admin.quotas_client.update_quota_set(
-                self.os_primary.tenants_client.tenant_id,
+                self.os_primary.tenant_usages_client.tenant_id,
                 cores=CONF.nfv_plugin_options.quota_cores,
                 ram=CONF.nfv_plugin_options.quota_ram,
                 instances=CONF.nfv_plugin_options.quota_instances)
@@ -151,7 +151,7 @@ class BareMetalManager(api_version_utils.BaseMicroversionTest,
     @classmethod
     def resource_setup(cls):
         super(BareMetalManager, cls).resource_setup()
-        cls.tenant_id = cls.manager.identity_client.tenant_id
+        cls.tenant_id = cls.manager.identity_v3_client.tenant_id
         cls.request_microversion = (
             api_version_utils.select_request_microversion(
                 cls.min_microversion,
