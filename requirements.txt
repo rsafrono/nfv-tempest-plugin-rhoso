@@ -1,6 +1,6 @@
 configparser >= 3.5.0
 envbash===1.2.0
-openstacksdk===1.0.1
+openstacksdk===1.0.2
 python-heatclient===3.2.0
 python-keystoneclient===5.1.0
 python-novaclient===18.3.0
