@@ -149,10 +149,13 @@ class TestAdvancedScenarios(base_test.BaseTest):
                              "that state.")
 
         if (not CONF.nfv_plugin_options.target_hypervisor
-                and CONF.nfv_plugin_options.run_live_migration):
-            migrate_kw_args = {'block_migration': True, 'force': True}
+                and CONF.nfv_plugin_options.live_migration_mode != 'none'):
+            is_block = True
+            if CONF.nfv_plugin_options.live_migration_mode != 'block':
+                is_block = False
+            migrate_kw_args = {'block_migration': is_block, 'force': True}
             # on 16.X microversion is 2.72
-            if float(CONF.compute.min_microversion) > 2.67:
+            if float(CONF.compute.min_microversion) > 2.67 and is_block:
                 migrate_kw_args.pop('force')
                 migrate_kw_args['block_migration'] = 'auto'
                 # Pre migration step,
