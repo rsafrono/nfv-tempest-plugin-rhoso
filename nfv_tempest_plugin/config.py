@@ -235,5 +235,19 @@ NfvPluginOptions = [
                default='block',
                choices=['block', 'shared', 'none'],
                help="Migration mode supported. Options: 'block', 'shared', "
-                    "'none' (in case no live migration supported)")
+                    "'none' (in case no live migration supported)"),
+    cfg.StrOpt('dcb_yaml_template',
+               default="""
+               dcb_config:
+                 - type: dcb
+                   device: {first_interface}
+                   dscp2prio:
+                     - priority: 2
+                       protocol: 24
+                     - priority: 3
+                       protocol: 8
+                     - priority: 4
+                       protocol: 12
+               """,
+               help='Default YAML configuration for DCB.')
 ]
