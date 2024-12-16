@@ -17,6 +17,7 @@ from nfv_tempest_plugin.tests.common.async_utils_manager \
     import AsyncUtilsManager
 from nfv_tempest_plugin.tests.common import shell_utilities as shell_utils
 from nfv_tempest_plugin.tests.scenario.day2.day2_manager import Day2Manager
+from nfv_tempest_plugin.tests.scenario.day2.dcb_manager import DCBManager
 from oslo_log import log as logging
 from tempest.api.compute import api_microversion_fixture
 from tempest.common import waiters
@@ -28,7 +29,7 @@ CONF = config.CONF
 LOG = logging.getLogger('{} [-] nfv_plugin_test'.format(__name__))
 
 
-class TestHypervisorScenarios(Day2Manager, AsyncUtilsManager):
+class TestHypervisorScenarios(Day2Manager, AsyncUtilsManager, DCBManager):
     def __init__(self, *args, **kwargs):
         super(TestHypervisorScenarios, self).__init__(*args, **kwargs)
         self.hypervisor_ip = None
@@ -131,3 +132,79 @@ class TestHypervisorScenarios(Day2Manager, AsyncUtilsManager):
                                      .novaclient_overcloud
                                      .hypervisors.list(),
                                      target=self.reboot_validate_kernel_args)
+
+    def test_dcb_config(self, test='dcb_config'):
+        """Test DCB Config
+
+        SUPPORTED: Mellanox NICS only
+        """
+
+        LOG.info('Start SRIOV DCB Config test, search for Mellanox nics')
+        # Check setup contains Mellanox nics.
+        kw_args = dict()
+        kw_args['command'] = r"sudo lshw -class network -businfo | grep "
+        kw_args['file_path'] = CONF.nfv_plugin_options.conf_files['sriov-nova']
+        kw_args['search_param'] = \
+            {'section': 'pci', 'value': 'device_spec'}
+        """ Regexp search Mellanox connect-x """
+        kw_args['filter_regexp'] = (
+            r'.*\[ConnectX\-5 Ex\]|.*\[ConnectX\-5\]|.*\[ConnectX\-6 Dx\]|'
+            r'.*\[ConnectX\-6\]|.*BlueField\-2 integrated ConnectX\-6 Dx'
+        )
+        kw_args['servers_ips'] = self. \
+            _get_hypervisor_ip_from_undercloud()
+        kw_args['multi_key_values'] = True
+        result = shell_utils. \
+            run_hypervisor_command_build_from_config(**kw_args)
+        self.assertTrue(
+            len(result) > 0, "no computes for dcb config test")
+
+        LOG.info('Hypervisor and Mellanox nics {} \n'.format(result))
+        first_int_entry = None
+        for hypervisor, interfaces in result.items():
+            # Check if there are interfaces listed for this hypervisor
+            if not interfaces:
+                LOG.warning('No interfaces found for hypervisor {}'.format(
+                             hypervisor))
+                continue
+
+            # Get the first interface entry for the hypervisor
+            first_int_entry = interfaces[0]
+            break
+
+        if first_int_entry is None:
+            raise ValueError('No Mellanox nics found')
+
+        # Extract the interface name and set dut
+        try:
+            target_interface = first_int_entry.split()[1]
+            dut_hypervisor = hypervisor
+            LOG.info('Found Valid interface {} on hypervisor {}'.format(
+                      target_interface, hypervisor))
+        except IndexError:
+            LOG.error('Failed to get interface from {}'.format(
+                       first_int_entry))
+
+        config_result = self.create_and_apply_dcb_config(target_interface,
+                                                         dut_hypervisor)
+        if config_result:
+            config_check = self.verify_applied_dcb_config(target_interface,
+                                                          config_result)
+            if config_check == False:
+                raise ValueError("Configs verification failed")
+        else:
+            raise ValueError(f"Failed to apply config on {dut_hypervisor}")
+
+        config_result = self.remove_dcb_config(target_interface,
+                                               dut_hypervisor)
+        if config_result:
+            config_check = self.verify_cleared_dcb_config(target_interface,
+                                                          config_result)
+            if config_check == False:
+                raise ValueError("Configs verification failed")
+        else:
+            raise ValueError(f"Failed to remove config on {dut_hypervisor}")
+
+        cleanup_result = self.cleanup_temp_dcb_config_file(dut_hypervisor)
+        if cleanup_result == False:
+            raise ValueError(f"Failed to cleanup files on {dut_hypervisor}")
