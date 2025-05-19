@@ -517,7 +517,7 @@ class ManagerMixin(object):
                              password: {passwd}
                              chpasswd: {{expire: False}}
                              ssh_pwauth: True
-                             disable_root: 0
+                             disable_root: false
                              '''.format(user=self.instance_user,
                                         passwd=self.instance_pass)
         repos_config = CONF.nfv_plugin_options.instance_repo
@@ -582,7 +582,7 @@ class ManagerMixin(object):
                     body += '''
                                - path: {file_dest}
                                  owner: root:root
-                                 permissions: 0755
+                                 permissions: '0755'
                                  encoding: base64
                                  content: |
                                      {file_content}
