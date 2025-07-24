@@ -16,6 +16,7 @@
 import json
 import re
 import time
+import yaml
 
 
 from nfv_tempest_plugin.tests.common import shell_utilities as shell_utils
@@ -39,6 +40,54 @@ class TestSriovScenarios(base_test.BaseTest, QoSManagerMixin):
         """
         super(TestSriovScenarios, self).setUp()
         # pre setup creations and checks read from
+
+    def test_sriov_drivers_autoprobe_false(self, test='sriov_drivers_autoprobe_false'):
+        """Test drivers autoprobe is set to False for all sriov_pf defined in
+        the os-net-config configuration file.
+        """
+
+        os_net_config_config_path = '/etc/os-net-config/config.yaml'
+        for hypervisor_ip in self._get_hypervisor_ip_from_undercloud():
+            # Get current os-net-config configuration loaded in computes
+            os_net_config_config = \
+                shell_utils.get_overcloud_config(hypervisor_ip,
+                                                 os_net_config_config_path)
+            self.assertNotEmpty(os_net_config_config,
+                                f"{os_net_config_config_path} file not found "
+                                f"in {hypervisor_ip}")
+            os_net_config_config = yaml.safe_load(os_net_config_config)
+            # Get all SR-IOV PFs
+            sriov_pfs = \
+                list(filter(lambda x: x.get('type') == 'sriov_pf',
+                            os_net_config_config['network_config']))
+            # Get NIC mapping nicX: devname
+            os_net_config_nic_mapping = \
+            json.loads(shell_utils.run_command_over_ssh(hypervisor_ip,
+                                                        'sudo os-net-config -i'))
+            for sriov_pf in sriov_pfs:
+                # Check drivers_autoprobe defined for the SRI-OV PF
+                self.assertEquals(sriov_pf.get('drivers_autoprobe'), False,
+                                  f"drivers_autoprobe either not False or not "
+                                  f"present in {hypervisor_ip} for "
+                                  f"{sriov_pf.get('name')}")
+                # Get the system device path for the NIC
+                # (e.g /sys/devices/pci0000:16/0000:16:02.0/0000:17:00.1/net/ens2f1np1)
+                devname = os_net_config_nic_mapping[sriov_pf.get('name')]
+                devname_sys_path = \
+                    shell_utils.run_command_over_ssh(
+                        hypervisor_ip,
+                        f"find /sys/devices -name {devname} -type d").strip()
+                # Check SR-IOV drivers autoprobe effectively set to false in compute
+                # (e.g /sys/devices/pci0000:16/0000:16:02.0/0000:17:00.1/sriov_drivers_autoprobe)
+                sys_sriov_drivers_autoprobe = \
+                    shell_utils.get_overcloud_config(
+                        hypervisor_ip,
+                        f"{devname_sys_path}/../../sriov_drivers_autoprobe")\
+                        .strip()
+                self.assertEquals(
+                    sys_sriov_drivers_autoprobe, '0',
+                    f"{devname_sys_path}/../../sriov_drivers_autoprobe "
+                    f"in {hypervisor_ip} must be 0")
 
     def test_sriov_trusted_vfs(self, test='trustedvfs'):
         """Verify trusted virtual functions
