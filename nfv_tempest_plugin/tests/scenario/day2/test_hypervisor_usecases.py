@@ -148,8 +148,7 @@ class TestHypervisorScenarios(Day2Manager, AsyncUtilsManager, DCBManager):
             {'section': 'pci', 'value': 'device_spec'}
         """ Regexp search Mellanox connect-x """
         kw_args['filter_regexp'] = (
-            r'.*\[ConnectX\-5 Ex\]|.*\[ConnectX\-5\]|.*\[ConnectX\-6 Dx\]|'
-            r'.*\[ConnectX\-6\]|.*BlueField\-2 integrated ConnectX\-6 Dx'
+            r'.*ConnectX.*|.*BlueField\-2 integrated ConnectX\-6 Dx'
         )
         kw_args['servers_ips'] = self. \
             _get_hypervisor_ip_from_undercloud()
