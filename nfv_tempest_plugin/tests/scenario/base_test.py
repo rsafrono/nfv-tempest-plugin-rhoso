@@ -17,6 +17,7 @@ from importlib import import_module
 from nfv_tempest_plugin.tests.common import shell_utilities as shell_utils
 from nfv_tempest_plugin.tests.scenario import baremetal_manager
 from oslo_log import log as logging
+import paramiko
 import re
 from tempest import clients
 from tempest.common import credentials_factory as common_creds
@@ -81,6 +82,11 @@ class BaseTest(baremetal_manager.BareMetalManager):
         """
         super(BaseTest, self).setUp()
         # pre setup creations and checks read from config files
+        self.ocp_ssh_client = self.get_remote_client(
+            ip_address=CONF.nfv_plugin_options.ocp_client_host,
+            username=CONF.nfv_plugin_options.ocp_client_host_user,
+            private_key=paramiko.ECDSAKey.from_private_key_file(
+                CONF.nfv_plugin_options.overcloud_node_pkey_file))
 
     def map_external_provider_network_types(self, server):
         networks = self.os_admin.networks_client.list_networks()['networks']
@@ -208,3 +214,34 @@ class BaseTest(baremetal_manager.BareMetalManager):
                 hypervisor,
                 'cat /var/lib/rhos-release/latest-installed')
         return int(re.findall(r'\d+', ver)[0])
+
+    def get_hypervisor_bm_host_name(self, host=None):
+        """Get bare-metal host name of RHOSO compute host
+
+        Retrieves bare-metel host name using Openshift client
+        :param host: Compute host name, can be either base name or FQDN
+        :return bare-metal host name (FQDN)
+        """
+        host = host.split('.')[0]
+        cmd = (f"oc get bmh {host} -n openstack "
+               "-o jsonpath='{.spec.bmc.address}'")
+        return self.ocp_ssh_client.exec_command(cmd).split('/')[2]
+
+    def check_ovs_config_value(
+            self, host=None, config=None, expected_value=None, msg=''):
+        """Skip test if expected OVS config option is not set
+
+        Gets OVS config value from remote host and compares
+        with expected value. Skip the test if the values not match
+        :param host: Remote host, usually RHOSO compute node
+        :param config: OVS config path
+        :param expected_value: Required setting
+        :param msg: Message with a reason of skipping the test
+        """
+        cmd = f"sudo ovs-vsctl get open . {config}"
+        res = shell_utils.run_command_over_ssh(
+            host, cmd).strip().replace('"', '')
+        if res != expected_value:
+            if not msg:
+                msg = "Expected config value not found"
+            raise self.skipException(msg)

@@ -29,6 +29,12 @@ NfvPluginOptions = [
                default='/var/lib/tempest/.ssh/id_ecdsa',
                help="SSH private key path for overcloud node - "
                     "controller/compute"),
+    cfg.StrOpt('ocp_client_host',
+               default="192.168.122.9",
+               help="Host with OCP client to query podified services"),
+    cfg.StrOpt('ocp_client_host_user',
+               default='zuul',
+               help='SSH user to run comands on ocp_cluster_host'),
     cfg.StrOpt("instance_user",
                default="cloud-user",
                help="SSH user for the guest instance"),

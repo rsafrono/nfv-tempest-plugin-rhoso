@@ -103,6 +103,7 @@ class ManagerMixin(object):
 
         Reads config data and assign it to dictionaries
         """
+        LOG.info('Read external config file')
         with open(CONF.nfv_plugin_options.external_config_file, 'r') as f:
             self.external_config = yaml.safe_load(f)
 
@@ -563,7 +564,8 @@ class ManagerMixin(object):
             scripts_dir = os.path.join(
                 exec_dir, CONF.nfv_plugin_options.transfer_files_src)
             test_scripts = os.listdir(scripts_dir)
-            test_scripts = [fil for fil in test_scripts if fil.endswith('.py')]
+            test_scripts = [fil for fil in test_scripts
+                            if fil.endswith((('.py'), ('.sh')))]
 
             header = '''
                              write_files:'''
